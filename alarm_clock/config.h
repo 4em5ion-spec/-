@@ -18,7 +18,7 @@
 /**
    Your 7-Segment display type: COMMON_ANODE or COMMON_CATHODE
 */
-#define DISPLAY_TYPE COMMON_ANODE
+#define DISPLAY_TYPE COMMON_CATHODE
 
 /**
    For how long should we show the alarm status (on/off)?
