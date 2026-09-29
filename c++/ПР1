@@ -1,0 +1,50 @@
+  #include <iostream>
+#define SIZE 5
+using namespace std; // Додано для зручності використання cout/cin
+void bsort(int iArray[], int n);
+int main() 
+{
+    char ch;
+    int ii;
+    int iArray[SIZE];
+    // Введення масиву
+    for(ii = 0; ii < SIZE; ii++) 
+    {
+        cout << "Please enter an integer: ";
+        cin >> iArray[ii]; // Виправлено: cin з маленької літери
+    }
+    cout << "\nWould you like to sort (Y/N) ";
+    cin >> ch;
+    if (ch == 'Y' || ch == 'y') 
+    {
+        bsort(iArray, SIZE);
+    }
+    // Виведення масиву
+    for(ii = 0; ii < SIZE; ii++) // Виправлено: видалено зайву ';'
+    {
+        cout << iArray[ii] << " ";
+    }
+    return 0;
+}
+void bsort(int iArray[], int n) 
+{
+    int i, j, k, t;
+    for(i = 0; i < n - 1; i++) 
+    {
+        j = i;
+        for(k = j + 1; k < n; k++) // Виправлено: 'п' замінено на 'n'
+        {
+            if(iArray[k] <= iArray[j]) 
+            {
+                j = k; // Запам'ятовуємо індекс найменшого елемента
+            }
+        }
+        if (i != j) // Виправлено: оператор '<>' замінено на '!='
+        {
+            // Обмін елементів місцями
+            t = iArray[j];
+            iArray[j] = iArray[i];
+            iArray[i] = t;
+        }
+    }
+}
