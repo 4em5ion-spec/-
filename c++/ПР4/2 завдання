@@ -1,0 +1,19 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    int a, b;
+    cout << "Enter number A: " << endl;
+    cin >> a;
+    cout << "Enter number B: " << endl;
+    cin >> b;
+    
+    for (int i = a; i <= b; i++) {
+        if (i % 2 == 0) {
+            std::cout << i << " ";
+        }
+    }
+    
+    return 0;
+}
