@@ -1,0 +1,17 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    int a;
+    cout << "Enter number A: " << endl;
+    cin >> a;
+    
+    if (a >= 10 && a <= 99 && a % 2 == 1) {
+        cout << "True";
+    } else {
+        cout << "False";
+    }
+    
+    return 0;
+}
