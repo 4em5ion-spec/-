@@ -1,0 +1,29 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+
+    double matrix[3][3] = {
+        {3.14, 2.71, 1.41},
+        {-5.5, 8.25, 0.0},
+        {9.9, -1.1, 4.6},
+    };
+
+    int positive_nums = 0;
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (matrix[i][j] > 0)
+            {
+                positive_nums++;
+            }
+        }
+    }
+
+    cout << "Result: " << positive_nums + matrix[1][1] << endl;
+
+    return 0;
+}
