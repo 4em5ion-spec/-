@@ -1,0 +1,31 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main()
+{
+    double arr[] = {-2.5, 4.1, 0.0, 7.8, -1.0, 0.0, 3.2};
+    double res = 0.0;
+    int zero_count = 0;
+
+    for (double el : arr)
+    {
+        if (el == 0.0)
+        {
+            zero_count++;
+        }
+        else if (el > 0.0)
+        {
+            res += el;
+        }
+        else
+        {
+            continue;
+        }
+    }
+
+    cout << "Count of zero elements: " << zero_count << endl;
+    cout << "Sum of positive elements: " << res << endl;
+
+    return 0;
+}
