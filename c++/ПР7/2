@@ -1,0 +1,34 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+
+    int matrix[3][3] = {
+        {3, 0, 0},
+        {-5, 8, 0},
+        {9, -1, 0},
+    };
+
+    cout << "Numbers of rows with only one zero: ";
+
+    for (int i = 0; i < 3; i++)
+    {
+        int zero_count = 0;
+
+        for (int j = 0; j < 3; j++)
+        {
+            if (matrix[i][j] == 0)
+            {
+                zero_count++;
+            }
+        }
+
+        if (zero_count == 1)
+        {
+            cout << i + 1 << "; ";
+        }
+    }
+
+    return 0;
+}
