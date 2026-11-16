@@ -1,0 +1,107 @@
+#include <iostream>
+#include <cstring>
+using namespace std;
+
+// Максимальна довжина тексту за умовою завдання
+const int MAX_LEN = 255;
+
+// Перевірка введеного речення.
+// Речення коректне, якщо воно не порожнє і має єдину крапку - в самому кінці.
+bool isValid(const char* s) {
+    int n = strlen(s);                    // довжина рядка (стандартна функція)
+    if (n == 0) {
+        cout << "  Error: the text is empty." << endl;
+        return false;
+    }
+    const char* dot = strchr(s, '.');     // адреса першої крапки (або nullptr)
+    if (dot == nullptr || dot != s + n - 1) {
+        cout << "  Error: the text must contain exactly one dot, "
+             << "at the very end." << endl;
+        return false;
+    }
+    return true;
+}
+
+// Пошук найдовшого слова.
+// text   - речення (рядок, що закінчується крапкою),
+// result - рядок, у який буде скопійовано знайдене слово.
+// Повертає довжину найдовшого слова (0, якщо слів немає).
+// Рядок обробляється за допомогою покажчика p. Слова розділені одним
+// або кількома пробілами, тому перед кожним словом пропускаємо всі пробіли.
+int findLongestWord(const char* text, char* result) {
+    const char* p = text;     // поточна позиція в тексті
+    int maxLen = 0;           // довжина найдовшого слова на цей момент
+    int number = 0;           // номер поточного слова
+    result[0] = '\0';
+
+    while (*p != '\0' && *p != '.') {
+        // 1. Пропускаємо пробіли між словами
+        while (*p == ' ') {
+            p++;
+        }
+        // Якщо після пробілів кінець тексту або крапка - слів більше немає
+        if (*p == '\0' || *p == '.') {
+            break;
+        }
+
+        // 2. Запам'ятовуємо початок слова і доходимо до його кінця
+        const char* start = p;
+        while (*p != ' ' && *p != '.' && *p != '\0') {
+            p++;
+        }
+        int len = p - start;  // довжина слова = різниця адрес кінця і початку
+        number++;
+
+        // 3. Виводимо проміжний результат
+        cout << "  Word " << number << ": \"";
+        cout.write(start, len);
+        cout << "\", length = " << len << endl;
+
+        // 4. Якщо слово довше за поточне найдовше - запам'ятовуємо його
+        //    (при однаковій довжині залишається перше слово)
+        if (len > maxLen) {
+            maxLen = len;
+            strncpy(result, start, len);   // копіюємо len символів слова
+            result[len] = '\0';            // вручну завершуємо рядок
+        }
+    }
+    return maxLen;
+}
+
+int main() {
+    char text[MAX_LEN + 1];       // речення (до 255 символів + завершальний нуль)
+    char longest[MAX_LEN + 1];    // сюди буде записано найдовше слово
+
+    cout << "---- Lab 10: Strings (variant 1) ----" << endl << endl;
+
+    // Введення речення з перевіркою коректності
+    while (true) {
+        cout << "(max 255 characters, the sentence must end with a dot)" << endl;
+        cout << "Enter a sentence: ";
+        cin.getline(text, MAX_LEN + 1);   // читаємо весь рядок разом з пробілами
+
+        if (cin.fail()) {                 // введено більше 255 символів
+            cout << "  Error: the text is too long." << endl;
+            cin.clear();                  // скидаємо стан помилки потоку
+            cin.ignore(10000, '\n');      // видаляємо зайві символи з буфера
+            continue;
+        }
+        if (isValid(text)) {
+            break;
+        }
+    }
+
+    // Обробка рядка
+    cout << endl << "Words found:" << endl;
+    int len = findLongestWord(text, longest);
+
+    // Виведення результату
+    cout << endl;
+    if (len == 0) {
+        cout << "There are no words in the sentence." << endl << endl;
+    } else {
+        cout << "The longest word: \"" << longest << "\" (" << len
+             << " letters)" << endl << endl;
+    }
+    return 0;
+}
