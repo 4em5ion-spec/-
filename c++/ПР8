@@ -1,0 +1,155 @@
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+// Максимальний розмір матриці (обмеження потрібне, щоб добуток
+// рядка гарантовано вміщувався у тип long long: 9^15 < 9.2 * 10^18)
+const int MAX_SIZE = 15;
+
+// Створення двовимірного динамічного масиву розміром rows x cols.
+// Спочатку виділяється масив покажчиків на рядки,
+// потім для кожного рядка виділяється окремий масив чисел.
+int** createMatrix(int rows, int cols) {
+    int** m = new int*[rows];
+    for (int i = 0; i < rows; i++) {
+        m[i] = new int[cols];
+    }
+    return m;
+}
+
+// Звільнення пам'яті: спочатку кожен рядок, потім масив покажчиків.
+void freeMatrix(int** m, int rows) {
+    for (int i = 0; i < rows; i++) {
+        delete[] m[i];
+    }
+    delete[] m;
+}
+
+// Заповнення масиву випадковими цілими числами з діапазону [minV; maxV].
+void fillRandom(int** m, int rows, int cols, int minV, int maxV) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            m[i][j] = minV + rand() % (maxV - minV + 1);
+        }
+    }
+}
+
+// Виведення масиву на екран у вигляді таблиці.
+void printMatrix(int** m, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        cout << "  Row " << setw(2) << i + 1 << " | ";
+        for (int j = 0; j < cols; j++) {
+            cout << setw(4) << m[i][j];
+        }
+        cout << endl;
+    }
+}
+
+// Підрахунок парних елементів одного рядка.
+// Рядок передається як покажчик на перший елемент, обхід виконується
+// за допомогою покажчика p (арифметика покажчиків).
+int countEven(int* row, int cols) {
+    int count = 0;
+    for (int* p = row; p < row + cols; p++) {
+        if (*p % 2 == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Добуток усіх елементів одного рядка.
+// Тип long long захищає від переповнення.
+long long rowProduct(int* row, int cols) {
+    long long prod = 1;
+    for (int* p = row; p < row + cols; p++) {
+        prod *= *p;
+    }
+    return prod;
+}
+
+// Виведення рядка у вигляді "a * b * c" для наочності розрахунків.
+void printProductFormula(int* row, int cols) {
+    for (int j = 0; j < cols; j++) {
+        cout << row[j];
+        if (j < cols - 1) {
+            cout << " * ";
+        }
+    }
+}
+
+// Обробка рядків масиву (виконується через функцію).
+// calc - покажчик на функцію, яка обчислює добуток рядка.
+// Якщо в рядку рівно два парних елементи, його добуток
+// обчислюється і додається до загальної суми.
+long long processRows(int** m, int rows, int cols,
+                      long long (*calc)(int*, int)) {
+    long long sum = 0;       // сума добутків підходящих рядків
+    int suitable = 0;        // кількість підходящих рядків
+
+    for (int i = 0; i < rows; i++) {
+        int evens = countEven(m[i], cols);
+        cout << "  Row " << setw(2) << i + 1 << ": even elements = " << evens;
+
+        if (evens == 2) {
+            long long prod = calc(m[i], cols);   // виклик функції через покажчик
+            sum += prod;
+            suitable++;
+            cout << " -> suitable" << endl;
+            cout << "          product = ";
+            printProductFormula(m[i], cols);
+            cout << " = " << prod << ", current sum = " << sum << endl;
+        } else {
+            cout << " -> skipped" << endl;
+        }
+    }
+
+    cout << "  Suitable rows found: " << suitable << endl;
+    return sum;
+}
+
+// Безпечне введення розміру з перевіркою коректності.
+int readSize(const char* name) {
+    int n;
+    while (true) {
+        cout << "Enter number of " << name << " (1.." << MAX_SIZE << "): ";
+        if (cin >> n && n >= 1 && n <= MAX_SIZE) {
+            return n;
+        }
+        cout << "Wrong value, try again." << endl;
+        cin.clear();                 // скидання стану помилки потоку
+        cin.ignore(10000, '\n');     // очищення буфера введення
+    }
+}
+
+int main() {
+    srand((unsigned)time(0));        // ініціалізація генератора випадкових чисел
+
+    cout << "---- Lab 8: Dynamic arrays (variant 1) ----" << endl << endl;
+
+    // 1. Користувач задає розмірність масиву
+    int rows = readSize("rows");
+    int cols = readSize("columns");
+
+    // 2. Створення і заповнення динамічного масиву
+    int** matrix = createMatrix(rows, cols);
+    fillRandom(matrix, rows, cols, 1, 9);
+
+    cout << endl << "Generated array (" << rows << " x " << cols << "):" << endl;
+    printMatrix(matrix, rows, cols);
+
+    // 3. Обробка рядків через функцію, якій передано покажчик на функцію
+    cout << endl << "Processing rows:" << endl;
+    long long (*calc)(int*, int) = rowProduct;
+    long long result = processRows(matrix, rows, cols, calc);
+
+    // 4. Підсумок
+    cout << endl << "Sum of products of rows with exactly two even elements: "
+         << result << endl << endl;
+
+    // 5. Звільнення динамічної пам'яті
+    freeMatrix(matrix, rows);
+    return 0;
+}
