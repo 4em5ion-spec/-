@@ -1,0 +1,183 @@
+#include <iostream>
+#include <string>
+#include <cctype>
+#ifdef _WIN32
+#include <windows.h>   // потрібно лише для перемикання консолі Windows на UTF-8
+#endif
+using namespace std;
+
+// Максимальна довжина тексту за умовою завдання
+const size_t MAX_LEN = 255;
+
+// Перетворення коду символу Unicode в рядок UTF-8.
+// Російські літери мають коди U+0401..U+0451 і займають 2 байти;
+// символ "№" (U+2116) займає 3 байти.
+// Завдяки цьому вихідний рядок не залежить від кодування консолі.
+string toUtf8(int code) {
+    string s;
+    if (code < 0x80) {                         // звичайний ASCII-символ
+        s += (char)code;
+    } else if (code < 0x800) {                 // 2 байти (кирилиця)
+        s += (char)(0xC0 | (code >> 6));
+        s += (char)(0x80 | (code & 0x3F));
+    } else {                                   // 3 байти (наприклад, "№")
+        s += (char)(0xE0 | (code >> 12));
+        s += (char)(0x80 | ((code >> 6) & 0x3F));
+        s += (char)(0x80 | (code & 0x3F));
+    }
+    return s;
+}
+
+// Перетворення одного символу, набраного в англійській розкладці,
+// у символ, який користувач хотів набрати в російській розкладці (ЙЦУКЕН).
+// Для кожної клавіші в таблиці вказано код Unicode російської літери.
+string convertChar(char c) {
+    bool upper = isupper((unsigned char)c) != 0;   // чи велика латинська літера
+    int code;
+
+    // Працюємо з малою літерою, щоб не дублювати таблицю для великих літер
+    switch (tolower((unsigned char)c)) {
+        // --- Верхній ряд клавіш ---
+        case 'q': code = 0x0439; break;   // й
+        case 'w': code = 0x0446; break;   // ц
+        case 'e': code = 0x0443; break;   // у
+        case 'r': code = 0x043A; break;   // к
+        case 't': code = 0x0435; break;   // е
+        case 'y': code = 0x043D; break;   // н
+        case 'u': code = 0x0433; break;   // г
+        case 'i': code = 0x0448; break;   // ш
+        case 'o': code = 0x0449; break;   // щ
+        case 'p': code = 0x0437; break;   // з
+        case '[': code = 0x0445; break;   // х
+        case ']': code = 0x044A; break;   // ъ
+        // --- Середній ряд клавіш ---
+        case 'a': code = 0x0444; break;   // ф
+        case 's': code = 0x044B; break;   // ы
+        case 'd': code = 0x0432; break;   // в
+        case 'f': code = 0x0430; break;   // а
+        case 'g': code = 0x043F; break;   // п
+        case 'h': code = 0x0440; break;   // р
+        case 'j': code = 0x043E; break;   // о
+        case 'k': code = 0x043B; break;   // л
+        case 'l': code = 0x0434; break;   // д
+        case ';': code = 0x0436; break;   // ж
+        case '\'': code = 0x044D; break;  // э
+        // --- Нижній ряд клавіш ---
+        case 'z': code = 0x044F; break;   // я
+        case 'x': code = 0x0447; break;   // ч
+        case 'c': code = 0x0441; break;   // с
+        case 'v': code = 0x043C; break;   // м
+        case 'b': code = 0x0438; break;   // и
+        case 'n': code = 0x0442; break;   // т
+        case 'm': code = 0x044C; break;   // ь
+        case ',': code = 0x0431; break;   // б
+        case '.': code = 0x044E; break;   // ю
+        case '/': code = '.';    break;   // крапка
+        case '`': code = 0x0451; break;   // ё
+        // --- Символи, що набираються з клавішею Shift ---
+        case '{': code = 0x0425; break;   // Х
+        case '}': code = 0x042A; break;   // Ъ
+        case ':': code = 0x0416; break;   // Ж
+        case '"': code = 0x042D; break;   // Э
+        case '<': code = 0x0411; break;   // Б
+        case '>': code = 0x042E; break;   // Ю
+        case '?': code = ',';    break;   // кома
+        case '~': code = 0x0401; break;   // Ё
+        case '@': code = '"';    break;   // лапки
+        case '#': code = 0x2116; break;   // №
+        case '$': code = ';';    break;   // крапка з комою
+        case '^': code = ':';    break;   // двокрапка
+        case '&': code = '?';    break;   // знак питання
+        case '|': code = '/';    break;   // коса риска
+        // --- Усі інші символи (цифри, дужки, пробіл тощо) не змінюються ---
+        default:  code = (unsigned char)c; break;
+    }
+
+    // Велика латинська літера відповідає великій російській літері.
+    // У Unicode велика літера на 0x20 менша за малу (а -> А).
+    if (upper) {
+        code -= 0x20;
+    }
+    return toUtf8(code);
+}
+
+// Перевірка введеного тексту: не порожній, не довший за 255 символів
+// і містить лише ASCII-символи (текст набрано в англійській розкладці).
+bool isValid(const string& s) {
+    if (s.empty()) {
+        cout << "  Error: the text is empty." << endl;
+        return false;
+    }
+    if (s.size() > MAX_LEN) {
+        cout << "  Error: the text is longer than 255 characters." << endl;
+        return false;
+    }
+    for (size_t i = 0; i < s.size(); i++) {
+        if ((unsigned char)s[i] > 127) {
+            cout << "  Error: the text must be typed with the English "
+                 << "keyboard layout (ASCII only)." << endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);     // щоб кирилиця коректно виводилась у консолі
+#endif
+
+    cout << "---- Lab 11: Text processing (variant 1) ----" << endl << endl;
+
+    // 1. Введення рядка з перевіркою (getline читає рядок разом з пробілами)
+    string text;
+    while (true) {
+        cout << "(max 255 characters, typed with the English layout)" << endl;
+        cout << "Enter text: ";
+        getline(cin, text);
+        if (!cin) {                  // потік введення закрито - завершуємо роботу
+            return 0;
+        }
+        if (isValid(text)) {
+            break;
+        }
+    }
+
+    // 2. Обробка: проходимо по рядку, перетворюємо кожен символ і
+    //    паралельно виділяємо слова (розділювач - один або кілька пробілів).
+    cout << endl << "Words found:" << endl;
+    string result;      // результат - весь рядок російською
+    string word;        // поточне слово в англійській розкладці
+    string wordRu;      // те саме слово після перетворення
+    int number = 0;     // кількість слів
+
+    for (size_t i = 0; i <= text.size(); i++) {
+        // Після останнього символу додаємо "віртуальний" пробіл,
+        // щоб завершити останнє слово
+        char c = (i < text.size()) ? text[i] : ' ';
+
+        if (c == ' ') {
+            if (!word.empty()) {                 // закінчилося слово
+                number++;
+                cout << "  Word " << number << ": \"" << word
+                     << "\" -> \"" << wordRu << "\"" << endl;
+                word.clear();
+                wordRu.clear();
+            }
+            if (i < text.size()) {
+                result += ' ';                   // пробіли зберігаємо як є
+            }
+        } else {
+            string ru = convertChar(c);          // перетворення символу
+            word += c;
+            wordRu += ru;
+            result += ru;
+        }
+    }
+
+    // 3. Виведення результату
+    cout << endl << "Words: " << number << endl;
+    cout << "Original : " << text << endl;
+    cout << "Converted: " << result << endl << endl;
+    return 0;
+}
