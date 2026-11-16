@@ -1,0 +1,305 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#ifdef _WIN32
+#define NOMINMAX            // щоб windows.h не перевизначав min/max
+#include <windows.h>
+#else
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
+using namespace std;
+
+// Кількість чисел, які зчитує програма
+const int COUNT = 4;
+
+// Коди кольорів ANSI: текст (30-37 звичайні, 90-97 яскраві) і фон (40-47)
+const int FG_BLACK = 30, FG_BRIGHT_YELLOW = 93, FG_BRIGHT_CYAN = 96;
+const int BG_BLUE = 44, BG_CYAN = 46;
+
+// ---------------------------------------------------------------
+// Службові функції для роботи з екраном
+// ---------------------------------------------------------------
+
+// Увімкнення керуючих послідовностей ANSI в консолі Windows
+// (в інших системах вони працюють без додаткових налаштувань).
+void enableAnsi() {
+#ifdef _WIN32
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    if (GetConsoleMode(h, &mode)) {
+        SetConsoleMode(h, mode | 0x0004);   // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    }
+#endif
+}
+
+// Визначення розміру вікна консолі (стовпці і рядки).
+// Якщо розмір визначити неможливо, використовується стандартний 80 x 25.
+void getScreenSize(int* cols, int* rows) {
+    *cols = 80;
+    *rows = 25;
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info)) {
+        *cols = info.srWindow.Right - info.srWindow.Left + 1;
+        *rows = info.srWindow.Bottom - info.srWindow.Top + 1;
+    }
+#else
+    struct winsize w;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0 && w.ws_row > 0) {
+        *cols = w.ws_col;
+        *rows = w.ws_row;
+    }
+#endif
+}
+
+// Встановлення кольору тексту (fg) і фону (bg)
+void setColor(int fg, int bg) {
+    cout << "\033[" << fg << ";" << bg << "m";
+}
+
+// Повернення стандартних кольорів
+void resetColor() {
+    cout << "\033[0m";
+}
+
+// Очищення екрана (заливається поточним кольором фону) і курсор у кут
+void clearScreen() {
+    cout << "\033[2J\033[H";
+}
+
+// Переміщення курсора в рядок row, стовпець col (нумерація з 1)
+void gotoXY(int row, int col) {
+    cout << "\033[" << row << ";" << col << "H";
+}
+
+// ---------------------------------------------------------------
+// Введення даних
+// ---------------------------------------------------------------
+
+// Зчитування рядка з клавіатури. Якщо введення закрито - завершуємо програму.
+void readLine(string* line) {
+    if (!getline(cin, *line)) {
+        resetColor();
+        exit(0);
+    }
+}
+
+// Введення одного дійсного числа з перевіркою коректності
+double readNumber(const string& prompt) {
+    while (true) {
+        cout << prompt;
+        string line;
+        readLine(&line);
+        istringstream in(line);       // потік для розбору рядка
+        double value;
+        char extra;
+        // Коректно, якщо зчитано число і після нього немає сторонніх символів
+        if (in >> value && !(in >> extra)) {
+            return value;
+        }
+        cout << "  Error: please enter a number." << endl;
+    }
+}
+
+// Перевірка, що всі числа масиву різні (звернення через покажчик).
+// Дійсні числа порівнюємо з допуском за допомогою fabs.
+bool allDifferent(const double* nums, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (fabs(*(nums + i) - *(nums + j)) < 1e-12) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Введення чотирьох різних чисел. Масив nums передається покажчиком,
+// тому функція записує значення прямо в масив викликаючої функції.
+void readNumbers(double* nums) {
+    while (true) {
+        for (int i = 0; i < COUNT; i++) {
+            *(nums + i) = readNumber("Enter number " + to_string(i + 1) + ": ");
+        }
+        if (allDifferent(nums, COUNT)) {
+            return;
+        }
+        cout << "  Error: the numbers must be different. Enter them again."
+             << endl;
+    }
+}
+
+// ---------------------------------------------------------------
+// Виведення результатів
+// ---------------------------------------------------------------
+
+// Перетворення числа на рядок (до 10 значущих цифр)
+string toText(double value) {
+    ostringstream out;
+    out.precision(10);
+    out << value;
+    return out.str();
+}
+
+// Перетворення масиву чисел на рядок "a, b, c, d"
+string numbersToText(const double* nums, int n) {
+    string s;
+    for (int i = 0; i < n; i++) {
+        if (i > 0) {
+            s += ", ";
+        }
+        s += toText(*(nums + i));
+    }
+    return s;
+}
+
+// Виведення рядків тексту в центрі екрана вказаним кольором на вказаному фоні.
+// Положення першого рядка: top = (rows - k) / 2 + 1, де k - кількість рядків.
+// Положення кожного рядка по горизонталі: col = (cols - len) / 2 + 1.
+void showCentered(const vector<string>& lines, int fg, int bg) {
+    int cols, rows;
+    getScreenSize(&cols, &rows);
+
+    setColor(fg, bg);
+    clearScreen();                 // увесь екран отримує колір фону bg
+
+    int top = (rows - (int)lines.size()) / 2 + 1;
+    for (size_t i = 0; i < lines.size(); i++) {
+        int col = (cols - (int)lines[i].size()) / 2 + 1;
+        if (col < 1) {
+            col = 1;
+        }
+        gotoXY(top + (int)i, col);
+        cout << lines[i];
+    }
+
+    // Підказка в нижньому рядку екрана
+    string hint = "Press Enter to return to the menu...";
+    gotoXY(rows, (cols - (int)hint.size()) / 2 + 1);
+    cout << hint << flush;
+
+    string tmp;
+    readLine(&tmp);                // чекаємо натискання Enter
+    resetColor();
+}
+
+// ---------------------------------------------------------------
+// Розв'язання задач (підпрограми)
+// ---------------------------------------------------------------
+
+// Задача 1: різниця між найбільшим і найменшим числами.
+// max_element і min_element - стандартні функції з <algorithm>,
+// вони працюють з покажчиками на початок і кінець масиву.
+void task1() {
+    resetColor();
+    clearScreen();
+    cout << "---- Task 1: difference between the largest and the smallest ----"
+         << endl << endl;
+
+    double nums[COUNT];
+    readNumbers(nums);             // ім'я масиву - це покажчик на перший елемент
+
+    double biggest  = *max_element(nums, nums + COUNT);
+    double smallest = *min_element(nums, nums + COUNT);
+    double diff = biggest - smallest;
+
+    vector<string> lines;
+    lines.push_back("TASK 1: LARGEST - SMALLEST");
+    lines.push_back("");
+    lines.push_back("Numbers: " + numbersToText(nums, COUNT));
+    lines.push_back("Largest number:  " + toText(biggest));
+    lines.push_back("Smallest number: " + toText(smallest));
+    lines.push_back("");
+    lines.push_back("Difference = " + toText(biggest) + " - (" + toText(smallest)
+                    + ") = " + toText(diff));
+    showCentered(lines, FG_BRIGHT_YELLOW, BG_BLUE);
+}
+
+// Добуток двох чисел, які передано за адресами (через покажчики)
+double product(const double* x, const double* y) {
+    return *x * *y;
+}
+
+// Задача 2: добуток першого та третього чисел
+void task2() {
+    resetColor();
+    clearScreen();
+    cout << "---- Task 2: product of the first and the third number ----"
+         << endl << endl;
+
+    double nums[COUNT];
+    readNumbers(nums);
+
+    double result = product(&nums[0], &nums[2]);   // адреси 1-го і 3-го елементів
+
+    vector<string> lines;
+    lines.push_back("TASK 2: FIRST * THIRD");
+    lines.push_back("");
+    lines.push_back("Numbers: " + numbersToText(nums, COUNT));
+    lines.push_back("First number: " + toText(nums[0]));
+    lines.push_back("Third number: " + toText(nums[2]));
+    lines.push_back("");
+    lines.push_back("Product = " + toText(nums[0]) + " * " + toText(nums[2])
+                    + " = " + toText(result));
+    showCentered(lines, FG_BLACK, BG_CYAN);
+}
+
+// ---------------------------------------------------------------
+// Меню
+// ---------------------------------------------------------------
+
+// Виведення меню на екран
+void showMenu() {
+    resetColor();
+    clearScreen();
+    setColor(FG_BRIGHT_CYAN, 40);
+    cout << "=========================== MENU ===========================" << endl;
+    resetColor();
+    cout << endl;
+    cout << "  1 - Difference between the largest and the smallest number" << endl;
+    cout << "  2 - Product of the first and the third number" << endl;
+    cout << "  0 - Exit" << endl << endl;
+}
+
+// Введення пункту меню з перевіркою (допустимі значення 0, 1, 2)
+int readChoice() {
+    while (true) {
+        cout << "Your choice (0-2): ";
+        string line;
+        readLine(&line);
+        istringstream in(line);
+        int choice;
+        char extra;
+        if (in >> choice && !(in >> extra) && choice >= 0 && choice <= 2) {
+            return choice;
+        }
+        cout << "  Error: enter 0, 1 or 2." << endl;
+    }
+}
+
+int main() {
+    enableAnsi();
+
+    while (true) {
+        showMenu();
+        int choice = readChoice();
+        if (choice == 0) {
+            break;                 // вихід з програми
+        }
+        if (choice == 1) {
+            task1();               // виклик підпрограми першої задачі
+        } else {
+            task2();               // виклик підпрограми другої задачі
+        }
+    }
+
+    resetColor();
+    clearScreen();
+    cout << "Program finished." << endl;
+    return 0;
+}
