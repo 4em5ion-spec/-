@@ -1,0 +1,63 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+using namespace std;
+
+// Максимальна кількість рядків (щоб зображення вміщувалось на екрані)
+const int MAX_ROWS = 50;
+
+// Функція виводить на екран рядок з n зірочок і переводить курсор на новий рядок.
+void printStars(int n) {
+    for (int i = 0; i < n; i++) {
+        cout << '*';                 // виводимо одну зірочку
+    }
+    cout << endl;                    // перехід на новий рядок
+}
+
+// Функція малює трикутник з rows рядків: в рядку з номером i - i зірочок.
+// Загальна кількість виведених зірочок повертається через покажчик total.
+void drawTriangle(int rows, int* total) {
+    *total = 0;                      // записуємо значення за адресою total
+    for (int i = 1; i <= rows; i++) {
+        printStars(i);               // виклик функції для i-го рядка
+        *total += i;                 // додаємо i зірочок до загальної кількості
+    }
+}
+
+// Введення кількості рядків з перевіркою коректності (1..MAX_ROWS)
+int readRows() {
+    while (true) {
+        cout << "Enter number of rows (1.." << MAX_ROWS << "): ";
+        string line;
+        if (!getline(cin, line)) {   // потік введення закрито
+            return 0;
+        }
+        istringstream in(line);      // розбір введеного рядка
+        int m;
+        char extra;
+        // Коректно, якщо введено ціле число в діапазоні і нічого зайвого
+        if (in >> m && !(in >> extra) && m >= 1 && m <= MAX_ROWS) {
+            return m;
+        }
+        cout << "  Error: enter an integer from 1 to " << MAX_ROWS << "." << endl;
+    }
+}
+
+int main() {
+    cout << "---- Lab 13: User functions (variant 1) ----" << endl << endl;
+
+    int m = readRows();              // кількість рядків задає користувач
+    if (m == 0) {
+        return 0;
+    }
+
+    int total;                       // сюди функція запише кількість зірочок
+    cout << endl << "Result:" << endl;
+    drawTriangle(m, &total);         // передаємо адресу змінної total
+
+    // Перевірка за формулою суми арифметичної прогресії: 1 + 2 + ... + m = m(m+1)/2
+    cout << endl << "Rows: " << m << endl;
+    cout << "Total stars: " << total << " (check: " << m << " * " << m + 1
+         << " / 2 = " << m * (m + 1) / 2 << ")" << endl << endl;
+    return 0;
+}
