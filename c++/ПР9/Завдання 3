@@ -1,0 +1,47 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+
+using namespace std;
+
+double f(double x, double y) {
+    double denom = x + sqrt(fabs(y));
+    if (fabs(denom) < 1e-12) {
+        return NAN;
+    }
+    return 1.0 / denom;
+}
+
+int main() {
+    const double step = 0.4;
+    const double eps = 1e-9;
+
+    int count = 0; 
+    int total_values = 0; 
+
+    cout << fixed << setprecision(4);
+    cout << "Перевірка значень протабульованої функції на належність (-inf; -3) та (0; +inf):\n\n";
+
+    for (double x = 1.0 + step; x < 2.0 - eps; x += step) {
+        for (double y = 0.0 + step; y < 3.0 - eps; y += step) {
+            double val = f(x, y);
+            total_values++;
+
+          
+            bool in_intervals = (!isnan(val)) && ((val < -3.0) || (val > 0.0));
+            if (in_intervals) {
+                count++;
+            }
+
+            cout << "x = " << setw(6) << x
+                 << " | y = " << setw(6) << y
+                 << " | f(x, y) = " << setw(8) << val
+                 << " | Підходить: " << (in_intervals ? "так" : "ні") << endl;
+        }
+    }
+
+    cout << "\nВсього протабульовано значень: " << total_values << endl;
+    cout << "Кількість значень у проміжках (-inf; -3) та (0; +inf): " << count << endl;
+
+    return 0;
+}
