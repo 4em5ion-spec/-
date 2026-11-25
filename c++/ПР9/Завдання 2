@@ -1,0 +1,35 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+
+using namespace std;
+
+double f(double x, double y) {
+    double denom = x + sqrt(fabs(y));
+    if (fabs(denom) < 1e-12) {
+        return NAN;
+    }
+    return 1.0 / denom;
+}
+
+int main() {
+    const double step = 0.4;
+    const double eps = 1e-9; 
+
+    cout << fixed << setprecision(4);
+    cout << "Табулювання функції f(x, y) = 1 / (x + sqrt(|y|)) з кроком " << step << "\n";
+    cout << "x in (1; 2), y in (0; 3)\n\n";
+
+    // Табличний вивід результатів
+    for (double x = 1.0 + step; x < 2.0 - eps; x += step) {
+        for (double y = 0.0 + step; y < 3.0 - eps; y += step) {
+            double val = f(x, y);
+            cout << "x = " << setw(6) << x
+                 << " | y = " << setw(6) << y
+                 << " | f(x, y) = " << setw(10) << val << endl;
+        }
+        cout << "--------------------------------------------\n";
+    }
+
+    return 0;
+}
